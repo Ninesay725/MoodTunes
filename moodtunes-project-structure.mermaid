@@ -1,0 +1,65 @@
+graph TD;
+    A["Client Pages"]-->B["API Services"]
+    B-->C["Server Actions"]
+    C-->D["External Services"]
+    
+    subgraph "Client Pages"
+        A1["app/page.tsx (Home)"]
+        A2["app/mood/page.tsx"]
+        A3["app/recommendations/[id]/page.tsx"]
+        A4["app/calendar/page.tsx"]
+        A5["app/profile/page.tsx"]
+    end
+    
+    subgraph "UI Components"
+        U1["components/navbar.tsx"]
+        U2["components/music-preferences-dialog.tsx"]
+        U3["components/soundcloud-player.tsx"]
+        U4["components/ui/* (shadcn components)"]
+    end
+    
+    subgraph "Client Services"
+        B1["lib/client/api-service.ts"]
+    end
+    
+    subgraph "Server Actions"
+        C1["server/actions/mood-actions.ts"]
+        C2["server/actions/music-actions.ts"]
+    end
+    
+    subgraph "API Routes"
+        R1["app/api/mood/analyze/route.ts"]
+        R2["app/api/recommendations/route.ts"]
+        R3["app/api/auth/google-api/route.ts"]
+    end
+    
+    subgraph "External Services"
+        D1["server/services/ai-service.ts (Gemini)"]
+        D2["server/services/soundcloud-service.ts"]
+    end
+    
+    subgraph "Types & Utilities"
+        T1["server/types/index.ts"]
+        T2["lib/utils.ts"]
+        T3["lib/config.ts"]
+        T4["lib/date-utils.ts"]
+    end
+    
+    A-->U1
+    A2-->B1
+    A3-->B1
+    A3-->U2
+    A3-->U3
+    
+    B1-->R1
+    B1-->R2
+    
+    R1-->C1
+    R2-->C2
+    
+    C1-->D1
+    C2-->D2
+    
+    D1-.Uses.->T1
+    D2-.Uses.->T1
+    B1-.Uses.->T1
