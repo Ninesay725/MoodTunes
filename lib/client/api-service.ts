@@ -7,6 +7,7 @@ export class ApiService {
     moodDescription: string,
     preferences?: MusicPreferences,
     previouslyRecommendedTracks?: Array<{ title: string; artist: string }>,
+    moodAlignment: "match" | "contrast" = "match",
   ): Promise<MoodAnalysis> {
     try {
       // Format preferences for the API - properly handle arrays
@@ -28,6 +29,7 @@ export class ApiService {
           moodDescription,
           preferences: formattedPreferences,
           previouslyRecommendedTracks,
+          moodAlignment,
         }),
       })
 
@@ -164,5 +166,6 @@ interface MoodEntry {
   description: string
   analysis: MoodAnalysis
   timestamp: number
+  moodAlignment?: "match" | "contrast"
 }
 

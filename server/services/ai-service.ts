@@ -143,6 +143,7 @@ export class GeminiService {
     moodDescription: string,
     preferences?: { style?: string | string[]; language?: string | string[]; source?: string | string[] },
     previouslyRecommendedTracks?: Array<{ title: string; artist: string }>,
+    moodAlignment: "match" | "contrast" = "match",
   ): string {
     // Remove the random seeds since we're using a different approach
     const timestamp = new Date().toISOString()
@@ -156,7 +157,18 @@ Based on this description:
 2. Identify the primary mood in a single word
 3. Identify any secondary mood in a single word (if present, otherwise set to null)
 4. Rate the emotional intensity on a scale of 1-10
-5. Recommend exactly 9 specific music tracks (with artist names) that would be therapeutic for this emotional state
+5. Recommend exactly 9 specific music tracks (with artist names) that would be therapeutic for this emotional state`
+
+    // Add mood alignment instruction
+    if (moodAlignment === "contrast") {
+      promptText += `
+IMPORTANT MOOD ALIGNMENT INSTRUCTION: The user has requested music that CONTRASTS with their current mood. If they are feeling negative emotions (sad, anxious, depressed, angry, etc.), recommend uplifting, energetic, and positive music. If they are feeling very energetic or overstimulated, recommend calming and soothing music. The goal is to provide music that helps shift their emotional state in a positive direction.`
+    } else {
+      promptText += `
+IMPORTANT MOOD ALIGNMENT INSTRUCTION: The user has requested music that MATCHES their current mood. Recommend music that resonates with and validates their emotional state.`
+    }
+
+    promptText += `
 IMPORTANT GUIDELINES FOR MUSIC RECOMMENDATIONS:
 - Focus on famous, popular, and well-known songs from 1990s to present day
 - Include a mix of recent hits (last 5 years) and classic hits (1990s-2010s)
@@ -243,6 +255,7 @@ IMPORTANT: Respond ONLY with a valid JSON object in the following format with no
     moodDescription: string,
     preferences?: { style?: string | string[]; language?: string | string[]; source?: string | string[] },
     previouslyRecommendedTracks?: Array<{ title: string; artist: string }>,
+    moodAlignment: "match" | "contrast" = "match",
   ) {
     if (!moodDescription || moodDescription.trim() === "") {
       throw new Error("Mood description cannot be empty")
@@ -257,7 +270,12 @@ IMPORTANT: Respond ONLY with a valid JSON object in the following format with no
       }
 
       // Create prompt with user preferences and send to Gemini
-      const prompt = this.createMoodAnalysisPrompt(moodDescription, preferences, previouslyRecommendedTracks)
+      const prompt = this.createMoodAnalysisPrompt(
+        moodDescription,
+        preferences,
+        previouslyRecommendedTracks,
+        moodAlignment,
+      )
 
       const result = await this.model.generateContent(prompt)
       const response = await result.response
@@ -275,6 +293,7 @@ IMPORTANT: Respond ONLY with a valid JSON object in the following format with no
         _style: preferences?.style,
         _language: preferences?.language,
         _source: preferences?.source,
+        _moodAlignment: moodAlignment,
       }
     } catch (error) {
       console.error("Error analyzing mood with Gemini:", error)

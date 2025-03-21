@@ -15,9 +15,10 @@ export interface MoodAnalysis {
   }
   error?: string
   _randomSeed?: number | string
-  _style?: string
-  _language?: string
-  _source?: string
+  _style?: string | string[]
+  _language?: string | string[]
+  _source?: string | string[]
+  _moodAlignment?: "match" | "contrast"
 }
 
 export interface Track {
@@ -43,5 +44,6 @@ export interface MoodEntry {
   description: string
   analysis: MoodAnalysis
   timestamp: number
+  moodAlignment?: "match" | "contrast"
 }
 

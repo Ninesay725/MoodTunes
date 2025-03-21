@@ -20,12 +20,14 @@ import SoundCloudPlayer from "@/components/soundcloud-player"
 import { ApiService } from "@/lib/client/api-service"
 import type { MoodAnalysis, Track, MusicPreferences } from "@/server/types"
 
+// In the interface MoodEntry, add the moodAlignment property
 interface MoodEntry {
   id: string
   date: string
   description: string
   analysis: MoodAnalysis
   timestamp: number
+  moodAlignment?: "match" | "contrast"
 }
 
 export default function RecommendationsPage({ params }: { params: { id: string } }) {
@@ -74,7 +76,7 @@ export default function RecommendationsPage({ params }: { params: { id: string }
 
     if (!preferences.source.includes("any")) {
       const sourceLabels = preferences.source.map((value) => getLabelFromValue(value, musicSources))
-      parts.push(`Sources: ${sourceLabels.join(", ")}`)
+      parts.push(`Sources: ${sourceLabels.join(" • ")}`)
     }
 
     return parts.length > 0 ? parts.join(" • ") : "No specific preferences"
@@ -432,6 +434,15 @@ export default function RecommendationsPage({ params }: { params: { id: string }
                       <Badge variant="outline">{moodEntry.analysis.musicRecommendations.playlistMood}</Badge>
                     </div>
                   </div>
+                  {/* In the CardContent section where we display the mood analysis, add this after the "Music Recommendation" section: */}
+                  {moodEntry.moodAlignment && (
+                    <div>
+                      <h3 className="font-medium mb-2">Recommendation Style</h3>
+                      <Badge variant="outline" className="capitalize">
+                        {moodEntry.moodAlignment === "match" ? "Matching your mood" : "Contrasting your mood"}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

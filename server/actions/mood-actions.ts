@@ -7,10 +7,11 @@ export async function analyzeMood(
   moodDescription: string,
   preferences?: { style?: string | string[]; language?: string | string[]; source?: string | string[] },
   previouslyRecommendedTracks?: Array<{ title: string; artist: string }>,
+  moodAlignment: "match" | "contrast" = "match",
 ): Promise<MoodAnalysis> {
   try {
     const geminiService = GeminiService.getInstance()
-    return await geminiService.analyzeMood(moodDescription, preferences, previouslyRecommendedTracks)
+    return await geminiService.analyzeMood(moodDescription, preferences, previouslyRecommendedTracks, moodAlignment)
   } catch (error) {
     console.error("Error in analyzeMood:", error)
 
