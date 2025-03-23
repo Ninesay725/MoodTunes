@@ -1,148 +1,247 @@
 "use client"
 
-import { useState } from "react"
+import type React from "react"
+
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Music2, User, Settings } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Loader2, AlertCircle, Upload, Check } from "lucide-react"
 import { Navbar } from "@/components/navbar"
+import { UserAvatar } from "@/components/user-avatar"
+import { useAuth } from "@/lib/context/auth-context"
+import { getProfile, updateProfile } from "@/lib/supabase/profile"
+import type { Profile } from "@/lib/supabase/profile"
 
 export default function ProfilePage() {
-  const [settings, setSettings] = useState({
-    saveHistory: true,
-    darkMode: false,
-    autoPlay: true,
-    createPlaylists: false,
-  })
+  const { user, isLoading: authLoading } = useAuth()
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [username, setUsername] = useState("")
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
 
-  const updateSetting = (key: keyof typeof settings, value: boolean) => {
-    setSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return
+
+      setIsLoading(true)
+      try {
+        const profileData = await getProfile(user.id)
+        if (profileData) {
+          setProfile(profileData)
+          setUsername(profileData.username)
+          setAvatarPreview(profileData.avatar_url)
+        } else {
+          // Handle case where profile doesn't exist
+          setError("Profile not found. Please try signing out and back in.")
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err)
+        setError("Failed to load profile data")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (!authLoading && user) {
+      fetchProfile()
+    } else if (!authLoading && !user) {
+      router.push("/auth/signin")
+    }
+  }, [user, authLoading, router])
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Avatar image must be less than 2MB")
+      return
+    }
+
+    // Check file type
+    if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(file.type)) {
+      setError("Avatar must be an image (JPEG, PNG, GIF, or WebP)")
+      return
+    }
+
+    setAvatarFile(file)
+
+    // Create preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+
+    setError(null)
+    setSuccess(null)
+    setIsSaving(true)
+
+    try {
+      // Validate username
+      if (!username.trim()) {
+        setError("Username is required")
+        setIsSaving(false)
+        return
+      }
+
+      // Update profile
+      const updates = {
+        username: username.trim(),
+        avatar_file: avatarFile || undefined,
+      }
+
+      const { success, profile: updatedProfile, error: updateError } = await updateProfile(user.id, updates)
+
+      if (!success || updateError) {
+        setError(updateError || "Failed to update profile")
+        setIsSaving(false)
+        return
+      }
+
+      if (updatedProfile) {
+        setProfile(updatedProfile)
+        setSuccess("Profile updated successfully")
+      } else {
+        // This shouldn't happen with our updated function, but just in case
+        setError("Profile update returned no data")
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err)
+      setError("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (authLoading || isLoading) {
+    return (
+      <>
+        <Navbar />
+        <div className="container flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </>
+    )
+  }
+
+  if (!user) {
+    return null // Router will redirect to sign in
   }
 
   return (
     <>
       <Navbar />
-      <div className="container py-12">
+      <div className="container max-w-4xl py-12">
         <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Account
-              </CardTitle>
-              <CardDescription>Manage your account settings and preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-medium mb-1">Email</h3>
-                <p className="text-sm text-muted-foreground">user@example.com</p>
-              </div>
-              <div>
-                <h3 className="font-medium mb-1">Member Since</h3>
-                <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString()}</p>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline">Edit Profile</Button>
-            </CardFooter>
-          </Card>
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <Card>
+        {success && (
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <Check className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-600">Success</AlertTitle>
+            <AlertDescription className="text-green-600">{success}</AlertDescription>
+          </Alert>
+        )}
+
+        <Card>
+          <form onSubmit={handleSubmit}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Music2 className="h-5 w-5" />
-                Music Services
-              </CardTitle>
-              <CardDescription>Connect your music streaming accounts</CardDescription>
+              <CardTitle>Edit Profile</CardTitle>
+              <CardDescription>Update your profile information and avatar</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">SoundCloud</h3>
-                    <p className="text-sm text-muted-foreground">Connect to get personalized recommendations</p>
-                  </div>
-                  <Button>
-                    <Music2 className="mr-2 h-4 w-4" />
-                    Connect with SoundCloud
+            <CardContent className="space-y-6">
+              <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                <div className="relative">
+                  <UserAvatar src={avatarPreview} alt={username || user.email || "User"} size="lg" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSaving}
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span className="sr-only">Upload avatar</span>
                   </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-medium">Profile Picture</h3>
+                  <p className="text-sm text-muted-foreground">Upload a new avatar or keep your current one</p>
+                  <p className="text-xs text-muted-foreground">
+                    Max file size: 2MB. Supported formats: JPEG, PNG, GIF, WebP
+                  </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Preferences
-              </CardTitle>
-              <CardDescription>Customize your MoodTunes experience</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="save-history">Save Mood History</Label>
-                    <p className="text-sm text-muted-foreground">Store your mood entries and music recommendations</p>
-                  </div>
-                  <Switch
-                    id="save-history"
-                    checked={settings.saveHistory}
-                    onCheckedChange={(checked) => updateSetting("saveHistory", checked)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={user.email || ""} disabled className="bg-muted" />
+                <p className="text-xs text-muted-foreground">Your email address cannot be changed</p>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="dark-mode">Dark Mode</Label>
-                    <p className="text-sm text-muted-foreground">Use dark theme for the application</p>
-                  </div>
-                  <Switch
-                    id="dark-mode"
-                    checked={settings.darkMode}
-                    onCheckedChange={(checked) => updateSetting("darkMode", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="auto-play">Auto-play Previews</Label>
-                    <p className="text-sm text-muted-foreground">Automatically play song previews when available</p>
-                  </div>
-                  <Switch
-                    id="auto-play"
-                    checked={settings.autoPlay}
-                    onCheckedChange={(checked) => updateSetting("autoPlay", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="create-playlists">Create Spotify Playlists</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically create Spotify playlists from recommendations
-                    </p>
-                  </div>
-                  <Switch
-                    id="create-playlists"
-                    checked={settings.createPlaylists}
-                    onCheckedChange={(checked) => updateSetting("createPlaylists", checked)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isSaving}
+                  required
+                />
               </div>
             </CardContent>
-            <CardFooter>
-              <Button>Save Preferences</Button>
+            <CardFooter className="flex justify-between">
+              <Button type="button" variant="ghost" onClick={() => router.push("/")} disabled={isSaving}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
             </CardFooter>
-          </Card>
-        </div>
+          </form>
+        </Card>
       </div>
     </>
   )

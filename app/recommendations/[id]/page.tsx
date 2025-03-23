@@ -19,6 +19,8 @@ import MusicPreferencesDialog, {
 import SoundCloudPlayer from "@/components/soundcloud-player"
 import { ApiService } from "@/lib/client/api-service"
 import type { MoodAnalysis, Track, MusicPreferences } from "@/server/types"
+import { useAuth } from "@/lib/context/auth-context"
+import { getMoodEntryById } from "@/lib/supabase/mood-entries"
 
 // In the interface MoodEntry, add the moodAlignment property
 interface MoodEntry {
@@ -26,13 +28,16 @@ interface MoodEntry {
   date: string
   description: string
   analysis: MoodAnalysis
-  timestamp: number
-  moodAlignment?: "match" | "contrast"
+  timestamp?: number
+  created_at?: string
+  user_id?: string
+  mood_alignment?: "match" | "contrast"
 }
 
 export default function RecommendationsPage({ params }: { params: { id: string } }) {
   // Access the id directly from params
   const { id } = params
+  const { user } = useAuth()
 
   const [moodEntry, setMoodEntry] = useState<MoodEntry | null>(null)
   const [tracks, setTracks] = useState<Track[]>([])
@@ -86,8 +91,28 @@ export default function RecommendationsPage({ params }: { params: { id: string }
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get the mood entry by ID
-        const entry = ApiService.getMoodEntryById(id)
+        let entry: MoodEntry | null = null
+
+        // If user is logged in, try to fetch from database first
+        if (user) {
+          const dbEntry = await getMoodEntryById(user.id, id)
+          if (dbEntry) {
+            entry = {
+              id: dbEntry.id,
+              user_id: dbEntry.user_id,
+              date: dbEntry.date,
+              description: dbEntry.description,
+              analysis: dbEntry.analysis,
+              created_at: dbEntry.created_at,
+              mood_alignment: dbEntry.mood_alignment,
+            }
+          }
+        }
+
+        // If not found in database or user not logged in, try local storage
+        if (!entry) {
+          entry = ApiService.getMoodEntryById(id)
+        }
 
         if (!entry) {
           setError("Mood entry not found")
@@ -170,7 +195,7 @@ export default function RecommendationsPage({ params }: { params: { id: string }
     }
 
     fetchData()
-  }, [id])
+  }, [id, user])
 
   // Update the handleQuickRefresh function to use allRecommendedTracks and userPreferences
   const handleQuickRefresh = async () => {
@@ -180,50 +205,44 @@ export default function RecommendationsPage({ params }: { params: { id: string }
     setError(null)
 
     try {
-      // Get the entry from local storage
-      const entry = ApiService.getMoodEntryById(id)
+      // Re-analyze the mood with the same description but avoid previously recommended tracks
+      const newAnalysis = await ApiService.analyzeMood(
+        moodEntry.description,
+        userPreferences,
+        allRecommendedTracks,
+        moodEntry.mood_alignment,
+      )
 
-      if (entry) {
-        // Log the current recommended tracks for debugging
-        console.log("Already recommended tracks:", allRecommendedTracks)
-        console.log("Using preferences:", userPreferences)
-
-        // Re-analyze the mood with the same description but avoid previously recommended tracks
-        const newAnalysis = await ApiService.analyzeMood(entry.description, userPreferences, allRecommendedTracks)
-
-        // Validate the new analysis
-        if (!newAnalysis.musicRecommendations || !Array.isArray(newAnalysis.musicRecommendations.recommendedTracks)) {
-          throw new Error("Invalid mood analysis result. Missing music recommendations.")
-        }
-
-        // Get recommendations based on the new analysis
-        const newTracks = await ApiService.getRecommendations(newAnalysis)
-
-        if (newTracks.length === 0) {
-          throw new Error("No new music recommendations found. Please try different preferences.")
-        }
-
-        // Track the new recommendations
-        const newTracksToTrack = newTracks.map((track) => ({
-          title: track.name,
-          artist: track.artist,
-        }))
-
-        // Check for duplicates before adding
-        const uniqueNewTracks = newTracksToTrack.filter(
-          (track) => !isTrackAlreadyRecommended(track.title, track.artist),
-        )
-
-        if (uniqueNewTracks.length === 0) {
-          throw new Error("All available tracks have been recommended. Please try different preferences.")
-        }
-
-        // Update the list of all recommended tracks
-        setAllRecommendedTracks((prev) => [...prev, ...uniqueNewTracks])
-
-        // Update the displayed tracks
-        setTracks(newTracks)
+      // Validate the new analysis
+      if (!newAnalysis.musicRecommendations || !Array.isArray(newAnalysis.musicRecommendations.recommendedTracks)) {
+        throw new Error("Invalid mood analysis result. Missing music recommendations.")
       }
+
+      // Get recommendations based on the new analysis
+      const newTracks = await ApiService.getRecommendations(newAnalysis)
+
+      if (newTracks.length === 0) {
+        throw new Error("No new music recommendations found. Please try different preferences.")
+      }
+
+      // Track the new recommendations
+      const newTracksToTrack = newTracks.map((track) => ({
+        title: track.name,
+        artist: track.artist,
+      }))
+
+      // Check for duplicates before adding
+      const uniqueNewTracks = newTracksToTrack.filter((track) => !isTrackAlreadyRecommended(track.title, track.artist))
+
+      if (uniqueNewTracks.length === 0) {
+        throw new Error("All available tracks have been recommended. Please try different preferences.")
+      }
+
+      // Update the list of all recommended tracks
+      setAllRecommendedTracks((prev) => [...prev, ...uniqueNewTracks])
+
+      // Update the displayed tracks
+      setTracks(newTracks)
     } catch (err) {
       console.error("Error refreshing recommendations:", err)
       setError(err instanceof Error ? err.message : "Failed to refresh recommendations")
@@ -252,49 +271,44 @@ export default function RecommendationsPage({ params }: { params: { id: string }
     setError(null)
 
     try {
-      // Get the entry from local storage
-      const entry = ApiService.getMoodEntryById(id)
+      // Re-analyze the mood with the same description and avoid previously recommended tracks
+      const newAnalysis = await ApiService.analyzeMood(
+        moodEntry.description,
+        preferences,
+        allRecommendedTracks,
+        moodEntry.mood_alignment,
+      )
 
-      if (entry) {
-        console.log("Using preferences:", preferences)
-        console.log("Already recommended tracks:", allRecommendedTracks)
-
-        // Re-analyze the mood with the same description and avoid previously recommended tracks
-        const newAnalysis = await ApiService.analyzeMood(entry.description, preferences, allRecommendedTracks)
-
-        // Validate the new analysis
-        if (!newAnalysis.musicRecommendations || !Array.isArray(newAnalysis.musicRecommendations.recommendedTracks)) {
-          throw new Error("Invalid mood analysis result. Missing music recommendations.")
-        }
-
-        // Get recommendations based on the new analysis
-        const newTracks = await ApiService.getRecommendations(newAnalysis)
-
-        if (newTracks.length === 0) {
-          throw new Error("No new music recommendations found. Please try different preferences.")
-        }
-
-        // Track the new recommendations
-        const newTracksToTrack = newTracks.map((track) => ({
-          title: track.name,
-          artist: track.artist,
-        }))
-
-        // Check for duplicates before adding
-        const uniqueNewTracks = newTracksToTrack.filter(
-          (track) => !isTrackAlreadyRecommended(track.title, track.artist),
-        )
-
-        if (uniqueNewTracks.length === 0) {
-          throw new Error("All available tracks have been recommended. Please try different preferences.")
-        }
-
-        // Update the list of all recommended tracks
-        setAllRecommendedTracks((prev) => [...prev, ...uniqueNewTracks])
-
-        // Update the displayed tracks
-        setTracks(newTracks)
+      // Validate the new analysis
+      if (!newAnalysis.musicRecommendations || !Array.isArray(newAnalysis.musicRecommendations.recommendedTracks)) {
+        throw new Error("Invalid mood analysis result. Missing music recommendations.")
       }
+
+      // Get recommendations based on the new analysis
+      const newTracks = await ApiService.getRecommendations(newAnalysis)
+
+      if (newTracks.length === 0) {
+        throw new Error("No new music recommendations found. Please try different preferences.")
+      }
+
+      // Track the new recommendations
+      const newTracksToTrack = newTracks.map((track) => ({
+        title: track.name,
+        artist: track.artist,
+      }))
+
+      // Check for duplicates before adding
+      const uniqueNewTracks = newTracksToTrack.filter((track) => !isTrackAlreadyRecommended(track.title, track.artist))
+
+      if (uniqueNewTracks.length === 0) {
+        throw new Error("All available tracks have been recommended. Please try different preferences.")
+      }
+
+      // Update the list of all recommended tracks
+      setAllRecommendedTracks((prev) => [...prev, ...uniqueNewTracks])
+
+      // Update the displayed tracks
+      setTracks(newTracks)
     } catch (err) {
       console.error("Error refreshing recommendations:", err)
       setError(err instanceof Error ? err.message : "Failed to refresh recommendations")
@@ -435,11 +449,11 @@ export default function RecommendationsPage({ params }: { params: { id: string }
                     </div>
                   </div>
                   {/* In the CardContent section where we display the mood analysis, add this after the "Music Recommendation" section: */}
-                  {moodEntry.moodAlignment && (
+                  {moodEntry.mood_alignment && (
                     <div>
                       <h3 className="font-medium mb-2">Recommendation Style</h3>
                       <Badge variant="outline" className="capitalize">
-                        {moodEntry.moodAlignment === "match" ? "Matching your mood" : "Contrasting your mood"}
+                        {moodEntry.mood_alignment === "match" ? "Matching your mood" : "Contrasting your mood"}
                       </Badge>
                     </div>
                   )}

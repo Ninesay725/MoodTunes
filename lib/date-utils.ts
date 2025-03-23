@@ -1,6 +1,16 @@
 import { format, parseISO } from "date-fns"
 
 /**
+ * Converts a UTC date string to a local date string in YYYY-MM-DD format
+ */
+export function utcToLocalDate(dateString: string): string {
+  // Create a date object from the UTC string
+  const date = new Date(dateString)
+  // Format it to YYYY-MM-DD in local timezone
+  return format(date, "yyyy-MM-dd")
+}
+
+/**
  * Normalizes a date to YYYY-MM-DD format in local timezone
  */
 export function normalizeDate(date: Date | string): string {

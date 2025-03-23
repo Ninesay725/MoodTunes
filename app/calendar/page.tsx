@@ -8,10 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Music2, Clock } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Navbar } from "@/components/navbar"
 import { ApiService } from "@/lib/client/api-service"
+import { useAuth } from "@/lib/context/auth-context"
+import { getAllMoodEntries } from "@/lib/supabase/mood-entries"
 import type { MoodAnalysis } from "@/server/types"
 
 interface MoodEntry {
@@ -19,7 +21,10 @@ interface MoodEntry {
   date: string
   description: string
   analysis: MoodAnalysis
-  timestamp: number
+  timestamp?: number
+  created_at?: string
+  user_id?: string
+  mood_alignment?: "match" | "contrast"
 }
 
 export default function CalendarPage() {
@@ -29,17 +34,44 @@ export default function CalendarPage() {
   const [selectedEntries, setSelectedEntries] = useState<MoodEntry[]>([])
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const { user } = useAuth()
 
   useEffect(() => {
-    try {
-      // Get all mood entries
-      const entries = ApiService.getAllMoodEntries()
-      setMoodHistory(entries)
-    } catch (error) {
-      console.error("Error loading mood history:", error)
-      setError("Failed to load your mood history")
+    const fetchMoodEntries = async () => {
+      setIsLoading(true)
+      try {
+        let entries: MoodEntry[] = []
+
+        // If user is logged in, fetch from database
+        if (user) {
+          const dbEntries = await getAllMoodEntries(user.id)
+          entries = dbEntries.map((entry) => ({
+            id: entry.id,
+            date: entry.date,
+            description: entry.description,
+            analysis: entry.analysis,
+            timestamp: new Date(entry.created_at).getTime(),
+            created_at: entry.created_at,
+            user_id: entry.user_id,
+            mood_alignment: entry.mood_alignment,
+          }))
+        } else {
+          // Otherwise, get from local storage
+          entries = ApiService.getAllMoodEntries()
+        }
+
+        setMoodHistory(entries)
+      } catch (error) {
+        console.error("Error loading mood history:", error)
+        setError("Failed to load your mood history")
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [])
+
+    fetchMoodEntries()
+  }, [user])
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -53,25 +85,23 @@ export default function CalendarPage() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
   }
 
-  // Normalize a date to YYYY-MM-DD format in local timezone
-  const normalizeDate = (date: Date | string): string => {
-    const d = typeof date === "string" ? new Date(date) : date
-    return format(d, "yyyy-MM-dd")
-  }
-
   // Get all mood entries for a specific day
   const getMoodEntriesForDay = (day: Date): MoodEntry[] => {
     // Format the day to YYYY-MM-DD for comparison
-    const formattedDay = normalizeDate(day)
+    const formattedDay = format(day, "yyyy-MM-dd")
 
     // Find all entries for this day
     return moodHistory
       .filter((entry) => {
-        // Normalize the date string to ensure consistent comparison
-        const entryDate = normalizeDate(entry.date)
-        return entryDate === formattedDay
+        // Use the date field directly for comparison
+        return entry.date === formattedDay
       })
-      .sort((a, b) => b.timestamp - a.timestamp) // Sort by timestamp (newest first)
+      .sort((a, b) => {
+        // Sort by timestamp (newest first)
+        const timestampA = a.timestamp || (a.created_at ? new Date(a.created_at).getTime() : 0)
+        const timestampB = b.timestamp || (b.created_at ? new Date(b.created_at).getTime() : 0)
+        return timestampB - timestampA
+      })
   }
 
   // Get the latest mood entry for a day
@@ -120,6 +150,17 @@ export default function CalendarPage() {
   }
 
   const activeEntry = getActiveEntry()
+
+  if (isLoading) {
+    return (
+      <>
+        <Navbar />
+        <div className="container py-12 flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
@@ -225,11 +266,18 @@ export default function CalendarPage() {
                 {selectedEntries.length > 1 ? (
                   <Tabs defaultValue={activeEntryId || selectedEntries[0].id} onValueChange={setActiveEntryId}>
                     <TabsList className="mb-4">
-                      {selectedEntries.map((entry, index) => (
-                        <TabsTrigger key={entry.id} value={entry.id}>
-                          Entry {index + 1} ({format(new Date(entry.timestamp), "h:mm a")})
-                        </TabsTrigger>
-                      ))}
+                      {selectedEntries.map((entry, index) => {
+                        const entryTime = entry.timestamp
+                          ? new Date(entry.timestamp)
+                          : entry.created_at
+                            ? new Date(entry.created_at)
+                            : new Date()
+                        return (
+                          <TabsTrigger key={entry.id} value={entry.id}>
+                            Entry {index + 1} ({format(entryTime, "h:mm a")})
+                          </TabsTrigger>
+                        )
+                      })}
                     </TabsList>
 
                     {selectedEntries.map((entry) => (
@@ -252,6 +300,12 @@ export default function CalendarPage() {
 
 // Separate component for mood entry details
 function MoodEntryDetails({ entry }: { entry: MoodEntry }) {
+  const entryTime = entry.timestamp
+    ? new Date(entry.timestamp)
+    : entry.created_at
+      ? new Date(entry.created_at)
+      : new Date()
+
   return (
     <div className="grid gap-6 sm:grid-cols-2">
       <div>
@@ -259,7 +313,7 @@ function MoodEntryDetails({ entry }: { entry: MoodEntry }) {
         <p className="text-gray-500">{entry.description}</p>
         <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
-          <span>Recorded at {format(new Date(entry.timestamp), "h:mm a")}</span>
+          <span>Recorded at {format(entryTime, "h:mm a")}</span>
         </div>
       </div>
       <div className="space-y-4">
@@ -286,6 +340,14 @@ function MoodEntryDetails({ entry }: { entry: MoodEntry }) {
             <Badge variant="outline">{entry.analysis.musicRecommendations.playlistMood}</Badge>
           </div>
         </div>
+        {entry.mood_alignment && (
+          <div>
+            <h3 className="font-medium mb-2">Recommendation Style</h3>
+            <Badge variant="outline" className="capitalize">
+              {entry.mood_alignment === "match" ? "Matching your mood" : "Contrasting your mood"}
+            </Badge>
+          </div>
+        )}
         <div className="pt-4">
           <Link href={`/recommendations/${entry.id}`}>
             <Button>
