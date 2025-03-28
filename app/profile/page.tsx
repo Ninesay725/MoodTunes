@@ -15,7 +15,10 @@ import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/context/auth-context"
 import { getProfile, updateProfile } from "@/lib/supabase/profile"
 import type { Profile } from "@/lib/supabase/profile"
+// Import the ProtectedRoute component
+import { ProtectedRoute } from "@/components/protected-route"
 
+// Replace the existing auth check with the ProtectedRoute component
 export default function ProfilePage() {
   const { user, isLoading: authLoading } = useAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -53,12 +56,10 @@ export default function ProfilePage() {
       }
     }
 
-    if (!authLoading && user) {
+    if (user) {
       fetchProfile()
-    } else if (!authLoading && !user) {
-      router.push("/auth/signin")
     }
-  }, [user, authLoading, router])
+  }, [user])
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -147,7 +148,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <div className="container max-w-4xl py-12">
         <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
@@ -243,7 +244,7 @@ export default function ProfilePage() {
           </form>
         </Card>
       </div>
-    </>
+    </ProtectedRoute>
   )
 }
 

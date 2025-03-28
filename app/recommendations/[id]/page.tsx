@@ -5,10 +5,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Music2, Calendar, ExternalLink, Info, RefreshCw, Filter, Search, AlertTriangle } from "lucide-react"
+import { Music2, Calendar, ExternalLink, Info, RefreshCw, Filter, Search, AlertTriangle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import MusicPreferencesDialog, {
   musicStyles,
@@ -21,6 +20,7 @@ import { ApiService } from "@/lib/client/api-service"
 import type { MoodAnalysis, Track, MusicPreferences } from "@/server/types"
 import { useAuth } from "@/lib/context/auth-context"
 import { getMoodEntryById } from "@/lib/supabase/mood-entries"
+import { ProtectedRoute } from "@/components/protected-route"
 
 // In the interface MoodEntry, add the moodAlignment property
 interface MoodEntry {
@@ -53,6 +53,12 @@ export default function RecommendationsPage({ params }: { params: { id: string }
     language: ["any"],
     source: ["any"],
   })
+
+  // Check if we have active preferences (not "any")
+  const hasActivePreferences =
+    !userPreferences.style.includes("any") ||
+    !userPreferences.language.includes("any") ||
+    !userPreferences.source.includes("any")
 
   // Function to normalize track title and artist for comparison
   const normalizeTrackInfo = (title: string, artist: string): string => {
@@ -317,64 +323,8 @@ export default function RecommendationsPage({ params }: { params: { id: string }
     }
   }
 
-  if (loading) {
-    return (
-      <>
-        <Navbar />
-        <div className="container flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </>
-    )
-  }
-
-  if (error) {
-    return (
-      <>
-        <Navbar />
-        <div className="container py-12">
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-          <div className="flex justify-center mt-8">
-            <Link href="/mood">
-              <Button>Create a new mood entry</Button>
-            </Link>
-          </div>
-        </div>
-      </>
-    )
-  }
-
-  if (!moodEntry) {
-    return (
-      <>
-        <Navbar />
-        <div className="container py-12">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <h2 className="text-2xl font-bold mb-4">Mood entry not found</h2>
-              <p className="text-gray-500 mb-6">We couldn't find the mood entry you're looking for.</p>
-              <Link href="/mood">
-                <Button>Create a new mood entry</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </>
-    )
-  }
-
-  // Check if we have active preferences (not "any")
-  const hasActivePreferences =
-    !userPreferences.style.includes("any") ||
-    !userPreferences.language.includes("any") ||
-    !userPreferences.source.includes("any")
-
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <div className="container py-12">
         <div className="flex flex-col gap-8">
@@ -580,7 +530,7 @@ export default function RecommendationsPage({ params }: { params: { id: string }
         isLoading={refreshing}
         currentPreferences={userPreferences}
       />
-    </>
+    </ProtectedRoute>
   )
 }
 

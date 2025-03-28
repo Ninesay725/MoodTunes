@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/context/auth-context"
 import { saveMoodEntry } from "@/lib/supabase/mood-entries"
 import { getUserPreferences } from "@/lib/supabase/user-preferences"
 import type { UserPreferences } from "@/lib/supabase/user-preferences"
+import { ProtectedRoute } from "@/components/protected-route"
 
 export default function MoodPage() {
   const [moodDescription, setMoodDescription] = useState("")
@@ -124,7 +125,7 @@ export default function MoodPage() {
   }
 
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <div className="container max-w-4xl py-12">
         <h1 className="text-3xl font-bold mb-8 text-center">How are you feeling today?</h1>
@@ -220,7 +221,7 @@ export default function MoodPage() {
           </form>
         </Card>
       </div>
-    </>
+    </ProtectedRoute>
   )
 }
 

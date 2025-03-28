@@ -16,7 +16,10 @@ import { getUserPreferences, updateUserPreferences } from "@/lib/supabase/user-p
 import type { UserPreferences } from "@/lib/supabase/user-preferences"
 import { musicStyles, musicLanguages, musicSources } from "@/components/music-preferences-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
+// Import the ProtectedRoute component
+import { ProtectedRoute } from "@/components/protected-route"
 
+// Replace the existing auth check with the ProtectedRoute component
 export default function SettingsPage() {
   const { user, isLoading: authLoading } = useAuth()
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
@@ -53,12 +56,10 @@ export default function SettingsPage() {
       }
     }
 
-    if (!authLoading && user) {
+    if (user) {
       fetchPreferences()
-    } else if (!authLoading && !user) {
-      router.push("/auth/signin")
     }
-  }, [user, authLoading, router])
+  }, [user])
 
   // Generic handler for toggling options in any multi-select
   const handleOptionToggle = (
@@ -130,12 +131,8 @@ export default function SettingsPage() {
     )
   }
 
-  if (!user) {
-    return null // Router will redirect to sign in
-  }
-
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <div className="container max-w-4xl py-12">
         <h1 className="text-3xl font-bold mb-8">Settings</h1>
@@ -263,7 +260,7 @@ export default function SettingsPage() {
           </form>
         </Card>
       </div>
-    </>
+    </ProtectedRoute>
   )
 }
 

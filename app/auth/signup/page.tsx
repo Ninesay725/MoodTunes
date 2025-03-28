@@ -68,6 +68,32 @@ export default function SignUpPage() {
     reader.readAsDataURL(file)
   }
 
+  // Add this function before the handleSubmit function
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const response = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      if (!response.ok) {
+        // If the API fails, we'll proceed with signup and let Supabase handle it
+        console.error("Failed to check email:", response.statusText)
+        return false
+      }
+
+      const data = await response.json()
+      return data.exists
+    } catch (error) {
+      console.error("Error checking email:", error)
+      return false
+    }
+  }
+
+  // Update the beginning of the handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -83,6 +109,14 @@ export default function SignUpPage() {
 
       if (password.length < 6) {
         setError("Password must be at least 6 characters")
+        setIsLoading(false)
+        return
+      }
+
+      // Check if email already exists
+      const emailExists = await checkEmailExists(email)
+      if (emailExists) {
+        setError("This email is already registered. Please sign in instead.")
         setIsLoading(false)
         return
       }
@@ -106,16 +140,27 @@ export default function SignUpPage() {
       }
 
       // Sign up the user
-      const { error: signUpError } = await signUp(email, password, username, avatarUrl)
+      const { error: signUpError, data } = await signUp(email, password, username, avatarUrl)
 
+      // If there's an error, display it and don't redirect
       if (signUpError) {
-        setError(signUpError.message)
+        console.error("Signup error:", signUpError.message)
+        setError(signUpError.message || "Failed to create account")
         setIsLoading(false)
         return
       }
 
-      // Redirect to confirmation page
-      router.push("/auth/confirmation")
+      // Check if we have a user but no session (email confirmation required)
+      if (data?.user && !data?.session) {
+        // Only redirect to confirmation page if there's no error
+        router.push("/auth/confirmation")
+      } else if (data?.session) {
+        // If we have a session, user is logged in, redirect to home
+        router.push("/")
+      } else {
+        // Something unexpected happened
+        setError("Something went wrong. Please try again.")
+      }
     } catch (err) {
       console.error("Sign up error:", err)
       setError("An unexpected error occurred. Please try again.")

@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error }
   }
 
+  // Update the signUp function to better handle existing email errors
   const signUp = async (email: string, password: string, username: string, avatarUrl?: string) => {
     // Make sure username is not empty
     if (!username.trim()) {
@@ -67,23 +68,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-          avatar_url: avatarUrl,
+    try {
+      // Proceed with signup - Supabase will handle the duplicate email check
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            avatar_url: avatarUrl,
+          },
         },
-      },
-    })
+      })
 
-    // If signup was successful but we need to verify email, we can still consider it a success
-    if (data?.user && !data?.session) {
-      console.log("User created, email verification required")
+      // Check for existing email error in the Supabase response
+      if (error) {
+        console.error("Signup error from Supabase:", error.message)
+
+        // Specifically check for the "already registered" error
+        if (
+          error.message?.toLowerCase().includes("already registered") ||
+          error.message?.toLowerCase().includes("already in use") ||
+          error.message?.toLowerCase().includes("already exists") ||
+          error.message?.toLowerCase().includes("unique constraint") ||
+          error.message?.toLowerCase().includes("email already")
+        ) {
+          return {
+            error: { message: "This email is already registered. Please sign in instead." },
+            data: null,
+          }
+        }
+
+        // Return any other error
+        return { data, error }
+      }
+
+      // If signup was successful but we need to verify email, we can still consider it a success
+      if (data?.user && !data?.session) {
+        console.log("User created, email verification required")
+      }
+
+      return { data, error }
+    } catch (error) {
+      console.error("Error in signUp:", error)
+      return {
+        error: { message: "An unexpected error occurred during signup" },
+        data: null,
+      }
     }
-
-    return { data, error }
   }
 
   const signOut = async () => {

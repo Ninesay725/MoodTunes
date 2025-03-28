@@ -1,0 +1,390 @@
+# MoodTunes Web Application - Test Documentation
+
+## Group 4
+
+## Table of Contents
+
+1. Introduction
+2. Front-End Component Tests
+3. Authentication Tests
+4. User Profile Tests
+5. Mood Analysis Tests
+6. Music Recommendation Tests
+7. Database Integration Tests
+8. API Integration Tests
+
+
+---
+
+## 1. Introduction
+
+This document outlines the comprehensive testing performed on the MoodTunes web application. MoodTunes is an AI-powered application that analyzes user mood descriptions and recommends personalized music based on emotional state. The application integrates with Google's Gemini AI for mood analysis and SoundCloud for music recommendations.
+
+### Testing Environment
+
+- **Browser Testing**: Chrome 120+, Firefox 120+, Safari 17+, Edge 120+
+- **Device Testing**: Desktop, Tablet, Mobile
+- **Backend**: Supabase (PostgreSQL)
+- **AI Integration**: Google Gemini 1.5 Pro
+- **Music API**: SoundCloud API
+
+
+---
+
+## 2. Front-End Component Tests
+
+### TC-FE-001: Homepage Rendering
+
+**Description**: Verify that the homepage loads correctly with all UI elements.
+**Test Steps**:
+
+1. Navigate to the application homepage
+2. Verify all UI elements are displayed correctly
+3. Check navigation links functionality
+
+
+**Expected Result**: Homepage loads with all UI elements properly displayed and functional.
+**Actual Result**: Homepage loads correctly with all elements properly displayed.
+**Status**: PASS
+
+### TC-FE-002: Navigation Component
+
+**Description**: Verify that the navigation bar functions correctly.
+**Test Steps**:
+
+1. Click on each navigation link
+2. Verify correct page routing
+3. Test responsive behavior on mobile devices
+
+
+**Expected Result**: Navigation links route to correct pages, responsive design works on mobile.
+**Actual Result**: All navigation links work correctly and responsive design functions as expected.
+**Status**: PASS
+
+### TC-FE-003: Mood Input Form
+
+**Description**: Verify that the mood input form functions correctly.
+**Test Steps**:
+
+1. Navigate to the mood input page
+2. Enter text in the mood description field
+3. Select mood alignment option
+4. Submit the form
+
+
+**Expected Result**: Form accepts input and submits successfully.
+**Actual Result**: Form accepts input and submits successfully.
+**Status**: PASS
+
+---
+
+## 3. Authentication Tests
+
+### TC-AUTH-001: User Registration
+
+**Description**: Verify that new users can register successfully.
+**Test Steps**:
+
+1. Navigate to sign-up page
+2. Enter valid email, username, and password
+3. Submit the form
+4. Verify confirmation message
+
+
+**Expected Result**: User account is created successfully.
+**Actual Result**: User account is created successfully.
+**Status**: PASS
+
+### TC-AUTH-002: User Login
+
+**Description**: Verify that registered users can log in.
+**Test Steps**:
+
+1. Navigate to sign-in page
+2. Enter valid credentials
+3. Submit the form
+4. Verify successful login and redirection
+
+
+**Expected Result**: User logs in successfully and is redirected to the homepage.
+**Actual Result**: User logs in successfully and is redirected to the homepage.
+**Status**: PASS
+
+### TC-AUTH-003: User Logout
+
+**Description**: Verify that users can log out.
+**Test Steps**:
+
+1. Log in as a user
+2. Click on the user avatar
+3. Select "Sign out" from the dropdown
+4. Verify logout and session termination
+
+
+**Expected Result**: User logs out successfully and session is terminated.
+**Actual Result**: User logs out successfully and session is terminated.
+**Status**: PASS
+
+---
+
+## 4. User Profile Tests
+
+### TC-PROF-001: Profile Information Display
+
+**Description**: Verify that user profile information displays correctly.
+**Test Steps**:
+
+1. Log in as a user
+2. Navigate to profile page
+3. Verify username and email display
+
+
+**Expected Result**: Profile page displays correct user information.
+**Actual Result**: Profile page displays correct user information.
+**Status**: PASS
+
+### TC-PROF-002: Avatar Upload
+
+**Description**: Verify that users can upload a profile avatar.
+**Test Steps**:
+
+1. Log in as a user
+2. Navigate to profile page
+3. Click upload avatar button
+4. Select an image file
+5. Verify avatar preview
+6. Save changes
+
+
+**Expected Result**: Avatar uploads and displays correctly.
+**Actual Result**: Avatar uploads and displays correctly.
+**Status**: PASS
+
+---
+
+## 5. Mood Analysis Tests
+
+### TC-MOOD-001: Mood Description Submission
+
+**Description**: Verify that mood descriptions can be submitted for analysis.
+**Test Steps**:
+
+1. Log in as a user
+2. Navigate to mood input page
+3. Enter mood description
+4. Submit the form
+5. Verify loading state and redirection
+
+
+**Expected Result**: Mood description submits successfully with loading indicator.
+**Actual Result**: Mood description submits successfully with loading indicator.
+**Status**: PASS
+
+### TC-MOOD-002: Gemini AI Integration
+
+**Description**: Verify that Gemini AI analyzes mood descriptions correctly.
+**Test Steps**:
+
+1. Submit various mood descriptions
+2. Verify AI response format
+3. Check primary and secondary mood identification
+4. Verify music genre recommendations
+
+
+**Expected Result**: Gemini AI returns properly formatted mood analysis.
+**Actual Result**: Gemini AI returns properly formatted mood analysis.
+**Status**: PASS
+
+### TC-MOOD-003: Mood Alignment Options
+
+**Description**: Verify that mood alignment options affect recommendations.
+**Test Steps**:
+
+1. Submit identical mood descriptions with different alignment options
+2. Compare music recommendations
+3. Verify contrast in recommendations when using "Contrast" option
+
+
+**Expected Result**: Different alignment options produce different recommendation sets.
+**Actual Result**: Different alignment options produce different recommendation sets.
+**Status**: PASS
+
+---
+
+## 6. Music Recommendation Tests
+
+### TC-REC-001: Music Recommendation Generation
+
+**Description**: Verify that music recommendations are generated based on mood analysis.
+**Test Steps**:
+
+1. Submit a mood description
+2. Wait for analysis completion
+3. Verify music recommendations display
+4. Check for track information (title, artist, album art)
+
+
+**Expected Result**: System generates and displays music recommendations.
+**Actual Result**: System generates and displays music recommendations.
+**Status**: PASS
+
+### TC-REC-002: SoundCloud Integration
+
+**Description**: Verify SoundCloud integration for music playback.
+**Test Steps**:
+
+1. View music recommendations
+2. Test SoundCloud player functionality
+3. Verify external links to SoundCloud
+4. Test playback controls
+
+
+**Expected Result**: SoundCloud players function correctly with proper playback.
+**Actual Result**: SoundCloud players function correctly with proper playback.
+**Status**: PASS
+
+### TC-REC-003: Music Preferences Filter
+
+**Description**: Verify that music preferences affect recommendations.
+**Test Steps**:
+
+1. Set music preferences (style, language, source)
+2. Generate recommendations
+3. Verify recommendations match preferences
+4. Change preferences and regenerate
+
+
+**Expected Result**: Recommendations reflect user preferences.
+**Actual Result**: Recommendations reflect user preferences.
+**Status**: PASS
+
+---
+
+## 7. Database Integration Tests
+
+### TC-DB-001: Mood Entry Storage
+
+**Description**: Verify that mood entries are stored correctly in the database.
+**Test Steps**:
+
+1. Submit a mood description as a logged-in user
+2. Verify entry in mood_entries table
+3. Check all fields are stored correctly
+
+
+**Expected Result**: Mood entry is stored in database with correct fields.
+**Actual Result**: Mood entry is stored in database with correct fields.
+**Status**: PASS
+
+### TC-DB-002: User Profile Storage
+
+**Description**: Verify that user profiles are stored correctly.
+**Test Steps**:
+
+1. Register a new user
+2. Verify profile creation in profiles table
+3. Update profile information
+4. Verify database updates
+
+
+**Expected Result**: User profile is stored and updated correctly in database.
+**Actual Result**: User profile is stored and updated correctly in database.
+**Status**: PASS
+
+### TC-DB-003: Date Handling
+
+**Description**: Verify correct date handling for mood entries.
+**Test Steps**:
+
+1. Create mood entries on different dates
+2. Verify date storage format
+3. Test date filtering in calendar view
+4. Verify timezone consistency
+
+
+**Expected Result**: Dates are stored and displayed consistently across timezones.
+**Actual Result**: Dates are stored and displayed consistently after fixing timezone issues.
+**Status**: PASS
+
+---
+
+## 8. API Integration Tests
+
+### TC-API-001: Gemini API Authentication
+
+**Description**: Verify that the application authenticates with Gemini API correctly.
+**Test Steps**:
+
+1. Check API key configuration
+2. Monitor API requests
+3. Verify successful authentication
+4. Test error handling for invalid API key
+
+
+**Expected Result**: Application authenticates with Gemini API successfully.
+**Actual Result**: Application authenticates with Gemini API successfully.
+**Status**: PASS
+
+### TC-API-002: Gemini API Response Handling
+
+**Description**: Verify that the application handles Gemini API responses correctly.
+**Test Steps**:
+
+1. Submit various mood descriptions
+2. Monitor API responses
+3. Verify parsing and validation
+4. Test error handling for malformed responses
+
+
+**Expected Result**: Application correctly parses and validates Gemini API responses.
+**Actual Result**: Application correctly parses and validates Gemini API responses.
+**Status**: PASS
+
+### TC-API-003: SoundCloud API Authentication
+
+**Description**: Verify that the application authenticates with SoundCloud API correctly.
+**Test Steps**:
+
+1. Check API credentials configuration
+2. Monitor API requests
+3. Verify successful authentication
+4. Test error handling for invalid credentials
+
+
+**Expected Result**: Application authenticates with SoundCloud API successfully.
+**Actual Result**: Application authenticates with SoundCloud API successfully.
+**Status**: PASS
+
+---
+
+## Summary
+
+The MoodTunes web application has undergone comprehensive testing across all components and functionality. The application demonstrates robust performance in mood analysis, music recommendations, user management, and responsive design.
+
+### Test Results Summary
+
+- Total Test Cases: 18
+- Passed: 18
+- Failed: 0
+- Pass Rate: 100%
+
+
+### Key Strengths
+
+- Accurate mood analysis using Gemini AI
+- Personalized music recommendations
+- Intuitive user interface
+- Responsive design across devices
+- Secure authentication and data handling
+
+
+### Areas for Future Enhancement
+
+- Offline functionality
+- Additional music service integrations
+- Advanced user preference learning
+- Social sharing features
+- Mobile app development
+
+
+The application is ready for deployment and final demonstration.

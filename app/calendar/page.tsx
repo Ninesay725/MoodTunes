@@ -15,6 +15,7 @@ import { ApiService } from "@/lib/client/api-service"
 import { useAuth } from "@/lib/context/auth-context"
 import { getAllMoodEntries } from "@/lib/supabase/mood-entries"
 import type { MoodAnalysis } from "@/server/types"
+import { ProtectedRoute } from "@/components/protected-route"
 
 interface MoodEntry {
   id: string
@@ -153,17 +154,17 @@ export default function CalendarPage() {
 
   if (isLoading) {
     return (
-      <>
+      <ProtectedRoute>
         <Navbar />
         <div className="container py-12 flex justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </>
+      </ProtectedRoute>
     )
   }
 
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <div className="container py-12">
         <div className="flex flex-col gap-8">
@@ -294,7 +295,7 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
-    </>
+    </ProtectedRoute>
   )
 }
 
