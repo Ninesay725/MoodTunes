@@ -47,7 +47,7 @@ export function Navbar() {
   const handleSignOut = async () => {
     setIsSigningOut(true)
     await signOut()
-    setIsSigningOut(false)
+    // No need to set isSigningOut to false as the page will redirect
   }
 
   return (

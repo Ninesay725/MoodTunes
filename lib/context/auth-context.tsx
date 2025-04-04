@@ -58,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error }
   }
 
-  // Update the signUp function to better handle existing email errors
   const signUp = async (email: string, password: string, username: string, avatarUrl?: string) => {
     // Make sure username is not empty
     if (!username.trim()) {
@@ -69,6 +68,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
+      // Get the site URL from environment or window location
+      const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin
+
       // Proceed with signup - Supabase will handle the duplicate email check
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -78,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             username,
             avatar_url: avatarUrl,
           },
+          emailRedirectTo: `${siteUrl}/auth/callback?type=signup`,
         },
       })
 
@@ -120,6 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
+    // Redirect to home page after sign out
+    window.location.href = "/"
   }
 
   const refreshSession = async () => {

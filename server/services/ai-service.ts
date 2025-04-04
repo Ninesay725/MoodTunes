@@ -39,7 +39,7 @@ export class GeminiService {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey)
-        this.model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" })
+        this.model = genAI.getGenerativeModel({ model: "gemini-2.5-pro-preview-03-25" })
         this.isInitialized = true
       } catch (error) {
         console.error("Failed to initialize GeminiService:", error)

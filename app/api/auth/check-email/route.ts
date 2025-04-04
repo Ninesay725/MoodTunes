@@ -21,22 +21,34 @@ export async function POST(request: Request) {
       },
     )
 
-    // Check if the email exists in auth.users
-    const { data, error } = await supabase.auth.admin.listUsers({
-      filter: {
-        email: email,
-      },
-    })
+    console.log("DEBUG - Email being checked:", email)
+
+    // Get all users since the filter doesn't seem to be working correctly
+    const { data, error } = await supabase.auth.admin.listUsers()
 
     if (error) {
       console.error("Error checking email:", error)
       return NextResponse.json({ error: "Failed to check email" }, { status: 500 })
     }
 
-    // If users array has any entries, the email exists
-    const exists = data.users && data.users.length > 0
+    // Manually check for an exact email match
+    const matchingUser = data?.users?.find((user) => user.email?.toLowerCase() === email.toLowerCase())
 
-    return NextResponse.json({ exists })
+    // Debug logs
+    console.log("DEBUG - Total users in database:", data?.users?.length || 0)
+    console.log("DEBUG - Email being checked:", email)
+    console.log("DEBUG - Email match found:", !!matchingUser)
+
+    if (matchingUser) {
+      console.log("DEBUG - Matching user:", {
+        id: matchingUser.id,
+        email: matchingUser.email,
+        emailConfirmed: matchingUser.email_confirmed_at,
+      })
+    }
+
+    // Only return true if we find an exact match
+    return NextResponse.json({ exists: !!matchingUser })
   } catch (error) {
     console.error("Error in check-email API:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

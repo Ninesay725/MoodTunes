@@ -9,16 +9,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, AlertCircle, Upload, Check } from "lucide-react"
+import { Loader2, AlertCircle, Upload, Check, Trash2 } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/context/auth-context"
 import { getProfile, updateProfile } from "@/lib/supabase/profile"
 import type { Profile } from "@/lib/supabase/profile"
-// Import the ProtectedRoute component
 import { ProtectedRoute } from "@/components/protected-route"
+import { DeleteAccountDialog } from "@/components/delete-account-dialog"
 
-// Replace the existing auth check with the ProtectedRoute component
 export default function ProfilePage() {
   const { user, isLoading: authLoading } = useAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -31,6 +30,7 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   // Fetch profile data
   useEffect(() => {
@@ -243,7 +243,32 @@ export default function ProfilePage() {
             </CardFooter>
           </form>
         </Card>
+
+        {/* Separate card for the danger zone */}
+        <Card className="mt-8 border-red-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-red-600">Danger Zone</CardTitle>
+            <CardDescription>Actions in this section can't be undone. Please proceed with caution.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 rounded-md border border-red-200 bg-red-50">
+                <div>
+                  <h3 className="font-medium text-red-700">Delete Account</h3>
+                  <p className="text-sm text-red-600">
+                    This will permanently delete your account and all associated data.
+                  </p>
+                </div>
+                <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)} className="w-full sm:w-auto">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Account
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+      <DeleteAccountDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} />
     </ProtectedRoute>
   )
 }
